@@ -1,0 +1,9 @@
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: base-ta
+spec:
+  secretTargetRef:
+    - parameter: password
+      name: twygr-api-secret-staging
+      key: REDIS_PASSWORD

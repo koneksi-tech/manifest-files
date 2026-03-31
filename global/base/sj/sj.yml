@@ -1,0 +1,48 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledJob
+metadata:
+  name: base-sj
+spec:
+  jobTargetRef:
+    template:
+      spec:
+        tolerations: []
+        nodeSelector: {}
+        containers:
+          - name: base-container
+            image: base-image
+            imagePullPolicy: IfNotPresent
+            envFrom:
+              - configMapRef:
+                  name: base-cm
+              - secretRef:
+                  name: base-secret
+            resources:
+              requests:
+                cpu: 250m
+                memory: 250Mi
+              limits:
+                cpu: 500m
+                memory: 2Gi
+            volumeMounts: []
+        volumes: []
+        imagePullSecrets:
+          - name: regcred
+        restartPolicy: Never
+    backoffLimit: 4
+  pollingInterval: 5 # Optional. Default: 30 seconds
+  maxReplicaCount: 20 # Optional. Default: 100
+  successfulJobsHistoryLimit: 2 # Optional. Default: 100. How many completed jobs should be kept.
+  failedJobsHistoryLimit: 2 # Optional. Default: 100. How many failed jobs should be kept.
+  scalingStrategy:
+    strategy: "accurate" # Optional. Default: default. Which Scaling Strategy to use.
+  triggers:
+    - type: redis
+      authenticationRef:
+        name: audio-transcribe-ta-staging
+      metadata:
+        address: my-redis-headless.redis.svc.cluster.local:6379 # Format must be host:port
+        passwordFromEnv: REDIS_PASSWORD
+        listName: queue_srt_google_staging # Required
+        listLength: "1" # Required
+        databaseIndex: "0"

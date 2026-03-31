@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: base-app
+  namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: alyas=base-image
+    argocd-image-updater.argoproj.io/write-back-method: git
+    # argocd-image-updater.argoproj.io/alyas.update-strategy: name
+    # argocd-image-updater.argoproj.io/alyas.allow-tags: null
+
+  # finalizers:
+  #   - resources-finalizer.argocd.argoproj.io
+spec:
+  destination:
+    namespace: null
+    server: https://kubernetes.default.svc
+  project: twygr
+  source:
+    path: null
+    repoURL: git@bitbucket.org:metawhale/manifests-seven-gen.git
+    targetRevision: master
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - Validate=true
+      - CreateNamespace=false
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true

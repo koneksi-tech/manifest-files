@@ -1,0 +1,15 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: base-scaledobject
+spec:
+  scaleTargetRef:
+    name: votes
+  triggers:
+  - type: redis-cluster
+    metadata:
+      addresses: node1:6379, node2:6379, node3:6379
+      listName: mylist
+      listLength: "10"
+    authenticationRef:
+      name: keda-trigger-auth-base-secret

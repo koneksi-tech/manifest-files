@@ -1,0 +1,51 @@
+# https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-stack
+  namespace: redis-stack
+spec:
+  selector:
+    matchLabels:
+      app: redis-stack-1 # has to match .spec.template.metadata.labels
+  serviceName: redis-stack-svc
+  replicas: 1 # by default is 1
+  template:
+    metadata:
+      labels:
+        app: redis-stack-1 # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 10
+      nodeSelector:
+        eks.amazonaws.com/capacityType: ON_DEMAND
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: redis-stack
+          image: redis/redis-stack-server:7.4.0-v0
+          ports:
+            - containerPort: 6379
+              name: redis-stack
+          volumeMounts:
+            - mountPath: /data
+              name: redis-stack-data
+          env:
+            - name: REDIS_ARGS
+              value: --protected-mode no --save ""
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 8Gi
+          # envFrom:
+          #   - secretRef:
+          #       name: redis-stack-secret
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-stack-data
+      spec:
+        storageClassName: gp3
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 50Gi

@@ -1,0 +1,25 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ClusterExternalSecret
+metadata:
+  name: mongo-uri-us-west-1-ces
+spec:
+  externalSecretName: mongo-uri-us-west-1-es
+  namespaceSelector:
+    matchExpressions:
+      - key: kubernetes.io/metadata.name
+        operator: In
+        values:
+          - bebot
+          - buboy
+          - twygr
+  refreshTime: 1h
+  externalSecretSpec:
+    refreshInterval: "0"
+    secretStoreRef:
+      name: aws-secret-store
+      kind: ClusterSecretStore
+    target:
+      name: mongo-uri-us-west-1-secret
+    dataFrom:
+      - extract:
+          key: global/mongodb/eks-us-west-1

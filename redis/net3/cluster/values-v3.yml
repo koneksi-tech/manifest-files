@@ -1,0 +1,113 @@
+global:
+  storageClass: longhorn
+auth:
+  existingSecret: redis-password-secret
+  existingSecretPasswordKey: password
+
+image:
+  tag: 7.2.4-debian-12-r12
+
+architecture: replication
+
+master:
+  count: 1
+  persistence:
+    size: 200Gi
+  service:
+    type: NodePort
+    nodePorts:
+      redis: "31459"
+  livenessProbe:
+    enabled: false
+  readinessProbe:
+    enabled: false
+  affinity: 
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In
+            values:
+            - worker-3-128
+            - worker-3-55
+            - k8s-3
+            - mmi
+            - worker-3-248
+            - sql2
+            - worker-3-130-a9ead6e9
+            - dc-redis
+  tolerations:
+    - effect: NoSchedule
+      key: role
+      value: cache
+    - effect: NoSchedule
+      key: dept
+      value: dc
+
+  resources:
+    # requests:
+    #   cpu: 8
+    #   memory: 512Mi
+    limits:
+      cpu: 4
+      memory: 80Gi
+
+replica:
+  replicaCount: 2
+  persistence:
+    size: 200Gi
+  service:
+    type: NodePort
+    nodePorts:
+      redis: "30234"
+  livenessProbe:
+    enabled: false
+  readinessProbe:
+    enabled: false
+  tolerations: 
+    - effect: NoSchedule
+      key: usage
+      value: cache
+    - effect: NoSchedule
+      key: dept
+      value: dc
+    - effect: NoSchedule
+      key: role
+      value: cache
+    - operator: Exists
+      key: airflow-only
+  affinity: 
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In
+            values:
+            - worker-3-128
+            - worker-3-55
+            - k8s-3
+            - mmi
+            - worker-3-248
+            - sql2
+            - worker-3-130-a9ead6e9
+            - dc-redis
+  resources:
+    limits:
+      cpu: 4
+      memory: 54Gi
+  
+
+sentinel:
+  enabled: false
+
+volumePermissions:
+  enabled: true
+
+
+commonConfiguration: |-
+  # Enable AOF https://redis.io/topics/persistence#append-only-file
+  appendonly no
+  # Disable RDB persistence, AOF persistence already enabled.
+  save ""

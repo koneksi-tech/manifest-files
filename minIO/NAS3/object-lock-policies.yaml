@@ -1,0 +1,200 @@
+# MinIO User and Policy Configuration for Object Lock
+# Only user 'keen' can delete objects, others are restricted by Object Lock
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: minio-object-lock-config
+  namespace: minio-devops
+data:
+  # Policy for regular users - no delete permissions during retention
+  regular-user-policy.json: |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "s3:GetObject",
+            "s3:PutObject",
+            "s3:ListBucket",
+            "s3:GetObjectVersion",
+            "s3:ListBucketVersions"
+          ],
+          "Resource": [
+            "arn:aws:s3:::your-bucket-name",
+            "arn:aws:s3:::your-bucket-name/*"
+          ]
+        },
+        {
+          "Effect": "Deny",
+          "Action": [
+            "s3:DeleteObject",
+            "s3:DeleteObjectVersion",
+            "s3:BypassGovernanceRetention"
+          ],
+          "Resource": [
+            "arn:aws:s3:::your-bucket-name/*"
+          ]
+        }
+      ]
+    }
+
+  # Policy for user 'keen' - can bypass Object Lock and delete
+  keen-admin-policy.json: |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "s3:GetObject",
+            "s3:PutObject",
+            "s3:DeleteObject",
+            "s3:DeleteObjectVersion",
+            "s3:ListBucket",
+            "s3:GetObjectVersion",
+            "s3:ListBucketVersions",
+            "s3:BypassGovernanceRetention",
+            "s3:GetObjectRetention",
+            "s3:PutObjectRetention",
+            "s3:GetObjectLegalHold",
+            "s3:PutObjectLegalHold"
+          ],
+          "Resource": [
+            "arn:aws:s3:::your-bucket-name",
+            "arn:aws:s3:::your-bucket-name/*"
+          ]
+        }
+      ]
+    }
+
+  # MinIO client commands to set up users and policies
+  setup-commands.sh: |
+    #!/bin/bash
+    
+    # Add the policies to MinIO
+    mc admin policy create myminio regular-user-policy /tmp/regular-user-policy.json
+    mc admin policy create myminio keen-admin-policy /tmp/keen-admin-policy.json
+    
+    # Create users
+    mc admin user add myminio keen keen-secure-password
+    mc admin user add myminio regularuser regular-user-password
+    
+    # Assign policies to users
+    mc admin policy attach myminio keen-admin-policy --user keen
+    mc admin policy attach myminio regular-user-policy --user regularuser
+    
+    # Create bucket with Object Lock enabled
+    mc mb --with-lock myminio/your-bucket-name
+    
+    # Set default retention policy (30 days governance mode)
+    mc retention set --default governance 30d myminio/your-bucket-name
+    
+    echo "Setup complete! Only user 'keen' can delete objects during retention period."
+
+---
+# MinIO Configuration with Object Lock enabled
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: minio-object-lock-helm-values
+  namespace: minio-devops
+data:
+  values.yaml: |
+    environment:
+      MINIO_BROWSER: "on"
+      # Enable Object Lock support
+      MINIO_OBJECT_LOCK: "on"
+      
+    mode: distributed
+    persistence:
+      accessMode: ReadWriteOnce
+      enabled: true
+      size: 5000Gi
+      storageClass: nfs-nas2
+    replicas: 5
+    
+    # Create default users with different permissions
+    users:
+      - accessKey: keen
+        secretKey: keen-secure-password
+        policy: keen-admin-policy
+      - accessKey: regularuser
+        secretKey: regular-user-password  
+        policy: regular-user-policy
+    
+    # Default bucket with Object Lock
+    defaultBucket:
+      enabled: true
+      name: your-bucket-name
+      policy: none
+      purge: false
+      # Enable versioning and Object Lock
+      versioning: true
+      objectLocking: true
+      
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+      requests:
+        cpu: 1000m
+        memory: 2Gi
+    service:
+      type: ClusterIP
+    tolerations:
+    - effect: NoSchedule
+      key: role
+      operator: Equal
+      value: cache
+
+---
+# Job to configure MinIO after deployment
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-object-lock-setup
+  namespace: minio-devops
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: minio-setup
+        image: minio/mc:latest
+        command: ["/bin/sh"]
+        args:
+        - -c
+        - |
+          # Wait for MinIO to be ready
+          until mc alias set myminio http://minio-devops:9000 minioadmin minioadmin; do
+            echo "Waiting for MinIO..."
+            sleep 5
+          done
+          
+          # Create policies
+          echo '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:GetObject","s3:PutObject","s3:ListBucket","s3:GetObjectVersion","s3:ListBucketVersions"],"Resource":["arn:aws:s3:::secure-bucket","arn:aws:s3:::secure-bucket/*"]},{"Effect":"Deny","Action":["s3:DeleteObject","s3:DeleteObjectVersion","s3:BypassGovernanceRetention"],"Resource":["arn:aws:s3:::secure-bucket/*"]}]}' > /tmp/regular-user-policy.json
+          
+          echo '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:*"],"Resource":["arn:aws:s3:::secure-bucket","arn:aws:s3:::secure-bucket/*"]}]}' > /tmp/keen-admin-policy.json
+          
+          # Add policies
+          mc admin policy create myminio regular-user-policy /tmp/regular-user-policy.json || true
+          mc admin policy create myminio keen-admin-policy /tmp/keen-admin-policy.json || true
+          
+          # Create users
+          mc admin user add myminio keen keen-password123
+          mc admin user add myminio regularuser regular-password123
+          
+          # Assign policies
+          mc admin policy attach myminio keen-admin-policy --user keen
+          mc admin policy attach myminio regular-user-policy --user regularuser
+          
+          # Create bucket with Object Lock
+          mc mb --with-lock myminio/secure-bucket || true
+          
+          # Set default retention (30 days governance mode)
+          mc retention set --default governance 30d myminio/secure-bucket
+          
+          echo "Object Lock setup completed successfully!"
+          echo "User 'keen' can delete objects, others cannot during retention period" 

@@ -1,0 +1,3 @@
+resources:
+  - secret-docker-reg.yml
+  - secret-aws-secret-reader.yml

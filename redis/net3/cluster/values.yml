@@ -1,0 +1,117 @@
+global:
+  storageClass: longhorn
+  # redis:
+  #   password: mBUdCAWu4135gjc6qMb88Q6LKdIPo8D9
+auth:
+  existingSecret: redis-password-secret
+  existingSecretPasswordKey: password
+
+image:
+  tag: 7.2.4-debian-12-r12
+
+architecture: replication
+
+master:
+  count: 1
+  persistence:
+    size: 100Gi
+  service:
+    type: NodePort
+    nodePorts:
+      redis: "31459"
+  livenessProbe:
+    enabled: false
+  readinessProbe:
+    enabled: false
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: redis
+        topologyKey: "kubernetes.io/hostname"
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: cache
+            operator: In
+            values:
+            - "true"
+  tolerations:
+    - effect: NoSchedule
+      key: usage
+      value: cache
+    - effect: NoSchedule
+      key: dept
+      value: dc
+    - effect: NoSchedule
+      key: role
+      value: cache
+
+  resources:
+    # requests:
+    #   cpu: 8
+    #   memory: 512Mi
+    limits:
+      cpu: 4
+      memory: 56Gi
+
+replica:
+  replicaCount: 2
+  persistence:
+    size: 100Gi
+  service:
+    type: NodePort
+    nodePorts:
+      redis: "30234"
+  livenessProbe:
+    enabled: false
+  readinessProbe:
+    enabled: false
+  tolerations:
+    - effect: NoSchedule
+      key: usage
+      value: cache
+    - effect: NoSchedule
+      key: dept
+      value: dc
+    - effect: NoSchedule
+      key: role
+      value: cache
+    - operator: Exists
+      key: airflow-only
+
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: redis
+        topologyKey: "kubernetes.io/hostname"
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: cache
+            operator: In
+            values:
+            - "true"
+          # - key: role
+          #   operator: In
+          #   values:
+          #   - spark
+  resources:
+    # requests:
+    #   cpu: 8
+    #   memory: 512Mi
+    limits:
+      cpu: 
+      memory: 56Gi
+  
+
+sentinel:
+  enabled: false
+
+# volumePermissions:
+#   enabled: true

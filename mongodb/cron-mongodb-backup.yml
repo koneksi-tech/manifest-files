@@ -1,0 +1,57 @@
+# https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mongodb-backup
+  namespace: mongo-eks-2
+spec:
+  schedule: "*/1 * * * *"
+  concurrencyPolicy: "Forbid"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          volumes:
+            - name: mongodb-pvc
+              persistentVolumeClaim:
+                claimName: mongodb-backup-pvc
+          containers:
+            - name: mongodb-backup
+              image: mongo:7.0.7
+              volumeMounts:
+                - name: mongodb-pvc
+                  mountPath: /dumps
+              command:
+                - /bin/sh
+                - -c
+                - mongodump --archive="/dumps/dump-$(date +'%Y-%m-%d').archive" --gzip --uri="$MONGODB_URI"
+                # - "&&"
+                # - /bin/sh
+                # - -c
+                # - sleep "30000"
+              envFrom:
+              - secretRef:
+                  name: mongo-backup-secrets
+          restartPolicy: OnFailure
+---
+# https://kubernetes.io/docs/concepts/storage/persistent-volumes/
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-backup-pvc
+  namespace: mongo-eks-2
+  labels:
+    app: mongodb-backup-pvc
+spec:
+  # AKS: default,managed-premium
+  # GKE: standard
+  # EKS: gp2 (custom)
+  # Rook: rook-ceph-block,rook-ceph-fs
+  storageClassName: gp3
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 200Gi
+---
+

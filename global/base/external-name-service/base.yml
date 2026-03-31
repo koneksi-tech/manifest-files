@@ -1,0 +1,11 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: keda-interceptor-proxy
+spec:
+  type: ExternalName
+  externalName: keda-add-ons-http-interceptor-proxy.keda.svc.cluster.local
+  ports:
+  - name: keda-reroute
+    port: 8080
+    protocol: TCP

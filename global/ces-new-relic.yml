@@ -1,0 +1,22 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ClusterExternalSecret
+metadata:
+  name: new-relic-ces
+spec:
+  externalSecretName: new-relic-es
+  namespaceSelector:
+    # matchLabels:
+    #   kubernetes.io/metadata.name: bebot,buboy
+    matchExpressions:
+    - { key: kubernetes.io/metadata.name, operator: In, values: [bebot,buboy,twygr] }
+  refreshTime: 1h
+  externalSecretSpec:
+    refreshInterval: "0"
+    secretStoreRef:
+      name: aws-secret-store
+      kind: ClusterSecretStore
+    target:
+      name: new-relic-secret
+    dataFrom:
+      - extract:
+          key: other/new-relic/new-relic-secret

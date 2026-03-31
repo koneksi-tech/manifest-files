@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: test-pvc  # Name of the new PVC
+  namespace: minio-operator  # Replace with your namespace
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi  # The size of the PVC
+  storageClassName: nfs-storage-class-nas3  # Your desired storage class (replace if needed)

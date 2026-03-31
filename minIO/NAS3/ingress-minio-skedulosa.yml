@@ -1,0 +1,43 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minio-skedulosa-api
+  namespace: minio-skedulosa
+  annotations:
+    meta.helm.sh/release-name: minio
+    meta.helm.sh/release-namespace: minio-skedulosa
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: minio-skedulosa-api.media-meter.in
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: minio-skedulosa
+                port:
+                  number: 9000  # Update to the correct port
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minio-skedulosa-console
+  namespace: minio-skedulosa
+  annotations:
+    meta.helm.sh/release-name: minio
+    meta.helm.sh/release-namespace: minio-skedulosa
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: minio-skedulosa.media-meter.in
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: minio-skedulosa-console
+                port:
+                  number: 9001  # Update to the correct port

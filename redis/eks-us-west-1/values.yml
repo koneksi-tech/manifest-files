@@ -1,0 +1,46 @@
+architecture: standalone
+auth:
+  existingSecret: redis-creds-secret
+  existingSecretPasswordKey: redis-password
+global:
+  storageClass: efs-sc
+master:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: role
+            operator: In
+            values:
+            - cache
+  persistence:
+    accessModes:
+    - ReadWriteMany
+    size: 10Gi
+  service:
+    type: LoadBalancer
+  tolerations:
+  - effect: NoSchedule
+    key: cache-only
+    operator: Equal
+    value: "true"
+replica:
+  accessModes:
+  - ReadWriteMany
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: role
+            operator: In
+            values:
+            - cache
+  persistence:
+    size: 10Gi
+  tolerations:
+  - effect: NoSchedule
+    key: cache-only
+    operator: Equal
+    value: "true"

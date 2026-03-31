@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio-client
+  labels:
+    app: minio-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minio-client
+  template:
+    metadata:
+      labels:
+        app: minio-client
+    spec:
+      containers:
+      - name: mc
+        image: minio/mc
+        imagePullPolicy: Always
+        command:
+        - /bin/sh
+        - -c
+        - sleep 4800
+        volumeMounts:
+        - name: backup-storage
+          mountPath: /backups
+        - name: scripts
+          mountPath: /scripts
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+      volumes:
+      - name: backup-storage
+        persistentVolumeClaim:
+          claimName: minio-client-backup-pvc
+      - name: scripts
+        configMap:
+          name: minio-client-config
+          defaultMode: 0755

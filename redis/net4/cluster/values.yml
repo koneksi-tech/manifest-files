@@ -1,0 +1,102 @@
+global:
+  storageClass: nfs-storage-class-nas3
+
+# auth:
+#   existingSecret: redis-password-secret
+#   existingSecretPasswordKey: password
+
+# image:
+#   tag: 7.2.4-debian-12-r12
+
+architecture: standalone
+
+master:
+  count: 1
+  persistence:
+    size: 4Gi
+  service:
+    type: NodePort
+    nodePorts:
+      redis: "31774"
+  livenessProbe:
+    enabled: false
+  readinessProbe:
+    enabled: false
+  affinity:
+    nodeAffinity:
+      # requiredDuringSchedulingIgnoredDuringExecution:
+      #   nodeSelectorTerms:
+      #   - matchExpressions:
+      #     - key: proj
+      #       operator: In
+      #       values:
+      #       - putulero
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In
+            values:
+            - av4-4-127
+  # tolerations:
+  #   - effect: NoSchedule
+  #     key: role
+  #     value: cache
+    # - effect: NoSchedule
+    #   key: dept
+    #   value: dc
+
+  # resources:
+    # requests:
+    #   cpu: 8
+    #   memory: 512Mi
+    # limits:
+    #   cpu: 8
+    #   memory: 48Gi
+
+# replica:
+#   replicaCount: 1
+#   persistence:
+#     size: 100Gi
+#   service:
+#     type: NodePort
+#   livenessProbe:
+#     enabled: false
+#   readinessProbe:
+#     enabled: false
+#   tolerations:
+#     - effect: NoSchedule
+#       key: usage
+#       value: cache
+#     - effect: NoSchedule
+#       key: dept
+#       value: dc
+#   affinity:
+#     nodeAffinity:
+#       requiredDuringSchedulingIgnoredDuringExecution:
+#         nodeSelectorTerms:
+#         - matchExpressions:
+#           - key: cache
+#             operator: In
+#             values:
+#             - "true"
+  resources:
+    # requests:
+    #   cpu: 8
+    #   memory: 512Mi
+    limits:
+      cpu: 2
+      memory: 24Gi
+  
+
+# sentinel:
+#   enabled: false
+
+# volumePermissions:
+#   enabled: true
+commonConfiguration: |-
+  # Enable AOF https://redis.io/topics/persistence#append-only-file
+  appendonly no
+  # Disable RDB persistence, AOF persistence already enabled.
+  save ""

@@ -1,0 +1,61 @@
+# https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: base-worker-deploy
+  labels:
+    tier: worker
+spec:
+  selector:
+    matchLabels:
+      tier: worker
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata: 
+      labels:
+        tier: worker
+    spec:
+      tolerations: []
+      # initContainers:
+        # Init containers are exactly like regular containers, except:
+          # - Init containers always run to completion.
+          # - Each init container must complete successfully before the next one starts.
+      containers:
+      - name: base-deploy
+        image: base-image
+        imagePullPolicy: IfNotPresent
+        resources: {}
+        # livenessProbe:
+        #   tcpSocket:
+        #     port: 80
+        #   initialDelaySeconds: 5
+        #   timeoutSeconds: 5
+        #   successThreshold: 1
+        #   failureThreshold: 3
+        #   periodSeconds: 10
+        # readinessProbe:
+        #   httpGet:
+        #     path: /_status/healthz
+        #     port: 80
+        #   initialDelaySeconds: 5
+        #   timeoutSeconds: 2
+        #   successThreshold: 1
+        #   failureThreshold: 3
+        #   periodSeconds: 10
+        envFrom:
+          - configMapRef:
+              name: base-cm
+          - secretRef:
+              name: base-secret
+        ports:
+        - containerPort: 8000
+          name: http
+        volumeMounts: []
+      imagePullSecrets:
+        - name: regcred
+      volumes: []
+      restartPolicy: Always

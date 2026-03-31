@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: base-sts
+spec:
+  serviceName: base-service
+  template:
+    metadata:
+      labels:
+        app: base-sts
+    spec:
+      tolerations: []
+      containers:
+      - name: base-sts
+        image: base-image
+        imagePullPolicy: IfNotPresent
+        resources: {}
+        envFrom:
+          - configMapRef:
+              name: base-cm
+          - secretRef:
+              name: base-secret
+        ports:
+        - containerPort: 8000
+          name: http
+      imagePullSecrets:
+        - name: regcred
+      volumes: []
+      restartPolicy: Always

@@ -1,0 +1,16 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: base-scaledobject
+  namespace: my-project
+spec:
+  scaleTargetRef:
+    name: base-deploy
+  triggers:
+  - type: redis
+    metadata:
+      address: localhost:6379
+      listName: mylist
+      listLength: "10"
+    authenticationRef:
+      name: keda-trigger-auth-base-secret
