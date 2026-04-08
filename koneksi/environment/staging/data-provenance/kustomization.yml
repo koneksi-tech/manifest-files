@@ -3,6 +3,9 @@
 #
 # Same pattern as koneksi-backend: global/base deploy + service + ingress, namespace koneksi-staging.
 #
+# Namespace + ncr-regcred are NOT listed here — they are managed only by the koneksi-backend Argo CD Application
+# to avoid SharedResourceWarning (two apps owning the same Namespace/Secret). Ensure backend syncs first or NS exists.
+#
 # Prerequisites:
 #   • TLS for this host:
 #       kubectl create secret tls data-provenance-tls -n koneksi-staging \
@@ -15,11 +18,9 @@ kind: Kustomization
 namespace: koneksi-staging
 
 resources:
-  - namespace.yml
   - ../../../../global/base/deploy
   - ../../../../global/base/service
   - ../../../../global/base/ingress
-  - ncr-regcred.yaml
   - configmap.yml
   - secret-env.yml
 
