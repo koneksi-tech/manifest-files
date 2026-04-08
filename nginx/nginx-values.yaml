@@ -1,0 +1,27 @@
+# NGINX Ingress Controller (ingress-nginx) values for NHN NKS.
+# Installs a public LoadBalancer for 80/443 and registers IngressClass "nginx".
+#
+# After install, point DNS (nhn-staging.koneksi.co.kr) to the controller Service EXTERNAL-IP.
+
+controller:
+  replicaCount: 2
+
+  ingressClassResource:
+    name: nginx
+    enabled: true
+    default: false
+
+  ingressClass: nginx
+
+  service:
+    type: LoadBalancer
+    ports:
+      http: 80
+      https: 443
+    # Optional: lock down who can reach the LB
+    # loadBalancerSourceRanges:
+    #   - 203.0.113.0/24
+
+  admissionWebhooks:
+    enabled: true
+

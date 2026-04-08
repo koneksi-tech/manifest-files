@@ -9,4 +9,3 @@ spec:
   - name: base-svc
     protocol: TCP
     port: 8000
----

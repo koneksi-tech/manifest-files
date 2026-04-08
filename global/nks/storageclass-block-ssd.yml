@@ -1,0 +1,31 @@
+# NHN Cloud NKS — Block Storage (Cinder CSI), SSD
+# Ref: https://docs.nhncloud.com/en/Container/NKS/en/user-guide/
+#      Block Storage CSI (NHN docs / console)
+#
+# Requires: NKS cluster with Block Storage CSI (Kubernetes 1.20+ typically uses this provisioner).
+# If your cluster only shows in-tree classes, ask NHN support or check: kubectl get csidrivers
+#
+# Apply:
+#   kubectl apply -f global/nks/storageclass-block-ssd.yml
+#
+# Use in Helm values, e.g.:
+#   global:
+#     defaultStorageClass: nhn-block-ssd
+#   persistence:
+#     storageClass: nhn-block-ssd
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nhn-block-ssd
+provisioner: cinder.csi.openstack.org
+parameters:
+  # NHN: General SSD (non-encrypted). For encrypted volumes use type "Encrypted SSD" plus SKM keys.
+  type: General SSD
+  # Optional: pin volume AZ so it matches your nodes (Pangyo example — adjust for your region).
+  # availability: kr-pub-a
+  # availability: kr-pub-b
+  # Pyeongchon examples: kr2-pub-a, kr2-pub-b
+  # Optional (if your CSI supports it): fsType: ext4
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer

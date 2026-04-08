@@ -1,0 +1,34 @@
+# Argo CD Application — data-provenance (staging).
+# Apply into the argocd namespace:
+#   kubectl apply -f koneksi/argocd/environment/staging/data-provenance-argocd.yml -n argocd
+#
+# Requires: repo credential Secret in argocd, Argo CD Image Updater (optional, for annotations below).
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: data-provenance-staging
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: base-image=36163004-kr1-registry.container.nhncloud.com/koneksi-tech/data-provenance
+    argocd-image-updater.argoproj.io/base-image.update-strategy: latest
+    argocd-image-updater.argoproj.io/base-image.allow-tags: regexp:^v[0-9].*-staging$
+    argocd-image-updater.argoproj.io/write-back-method: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:koneksi-tech/manifest-files.git
+    targetRevision: main
+    path: koneksi/environment/staging/data-provenance
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: koneksi-staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true

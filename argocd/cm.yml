@@ -15,11 +15,11 @@ metadata:
 data:
   registries.conf: |
     registries:
-      - name: Docker Hub
-        api_url: https://registry-1.docker.io
+      - name: NHN NCR (koneksi-tech)
+        prefix: 36163004-kr1-registry.container.nhncloud.com/koneksi-tech
+        api_url: https://36163004-kr1-registry.container.nhncloud.com
+        credentials: pullsecret:argocd/ncr-regcred
         default: true
-        credentials: secret:argocd/dockerhub#my-token
-        limit: 20
         ping: true
   argocd.grpc_web: "true"
   argocd.insecure: "false"

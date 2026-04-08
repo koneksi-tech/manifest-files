@@ -1,1 +1,0 @@
-$ helm upgrade helm-redis -n redis-stack oci://registry-1.docker.io/bitnamicharts/redis -f redis/eks-media-meter/values.yaml

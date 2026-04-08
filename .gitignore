@@ -1,0 +1,9 @@
+# Never commit private keys or local deploy key filenames
+argocd-github-deploy
+id_rsa
+id_ed25519
+*.pem
+*.key
+.env
+.env.*
+*.tgz

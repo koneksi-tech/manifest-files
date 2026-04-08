@@ -1,0 +1,22 @@
+# NHN NCR pull secret for namespace koneksi-staging (same registry auth as argocd/ncr-regcred.yaml).
+# Prefer rotating keys if this file is shared; consider kubectl copy from argocd instead of duplicating:
+#   kubectl get secret ncr-regcred -n argocd -o yaml | sed '/resourceVersion:/d;/uid:/d;/creationTimestamp:/d;/namespace:/s/argocd/koneksi-staging/' | kubectl apply -f -
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ncr-regcred
+type: kubernetes.io/dockerconfigjson
+stringData:
+  .dockerconfigjson: |
+    {
+      "auths": {
+        "https://36163004-kr1-registry.container.nhncloud.com": {
+          "username": "YOUR_NCR_ACCESS_KEY",
+          "password": "YOUR_NCR_SECRET_KEY"
+        },
+        "36163004-kr1-registry.container.nhncloud.com": {
+          "username": "YOUR_NCR_ACCESS_KEY",
+          "password": "YOUR_NCR_SECRET_KEY"
+        }
+      }
+    }

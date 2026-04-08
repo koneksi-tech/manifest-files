@@ -1,0 +1,22 @@
+# Strategic merge on global/base/ingress/ingress.yml (metadata.name: base-ingress)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: base-ingress
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - nhn-staging.koneksi.co.kr
+      secretName: koneksi-backend-tls
+  rules:
+    - host: nhn-staging.koneksi.co.kr
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: koneksi-backend
+                port:
+                  name: http

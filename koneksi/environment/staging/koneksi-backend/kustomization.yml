@@ -1,0 +1,84 @@
+# Apply (from repo root):
+#   kubectl apply -k koneksi/environment/staging/koneksi-backend
+#
+# Uses shared templates under global/base (deploy, service, ingress) plus staging patches.
+#
+# Prerequisites:
+#   • Namespace `koneksi-staging` (included via namespace.yml), or create: kubectl create namespace koneksi-staging
+#   • Image pull: `ncr-regcred.yaml` (NCR) is included; sync credentials with argocd/ncr-regcred.yaml if you rotate keys.
+#   • TLS: create the TLS secret before Ingress becomes ready:
+#       kubectl create secret tls koneksi-backend-tls -n koneksi-staging \
+#         --cert=fullchain.pem --key=privkey.pem
+#   • Edit configmap.yml and secret-env.yml for your app env (do not commit real secrets).
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: koneksi-staging
+
+resources:
+  - namespace.yml
+  - ../../../../global/base/deploy
+  - ../../../../global/base/service
+  - ../../../../global/base/ingress
+  - ncr-regcred.yaml
+  - configmap.yml
+  - secret-env.yml
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: koneksi-backend
+      app.kubernetes.io/part-of: koneksi
+    includeSelectors: true
+
+images:
+  - name: base-image
+    newName: 36163004-kr1-registry.container.nhncloud.com/koneksi-tech/koneksi-backend
+    newTag: v0.0.15-staging
+
+patches:
+  - path: patches/deploy.yml
+  - path: patches/service.yml
+  - path: patches/ingress.yml
+  # global/base/service merges ports by name; replace so only port 80 → 3000 remains
+  - target:
+      kind: Service
+      name: base-svc
+    patch: |-
+      - op: replace
+        path: /spec/ports
+        value:
+          - name: http
+            protocol: TCP
+            port: 80
+            targetPort: http
+  # global/base/deploy lists regcred; overlay uses ncr-regcred only
+  - target:
+      kind: Deployment
+      name: base-deploy
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/imagePullSecrets
+        value:
+          - name: ncr-regcred
+  - target:
+      kind: Deployment
+      name: base-deploy
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: koneksi-backend
+  - target:
+      kind: Service
+      name: base-svc
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: koneksi-backend
+  - target:
+      kind: Ingress
+      name: base-ingress
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: koneksi-backend

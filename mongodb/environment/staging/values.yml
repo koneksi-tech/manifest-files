@@ -1,0 +1,97 @@
+# Staging: MongoDB as a replica set (Bitnami chart: oci://registry-1.docker.io/bitnamicharts/mongodb)
+#
+# `architecture: replicaset` is required for Change Streams ($changeStream) — standalone does not support them.
+# Single-node RS (`replicaCount: 1`) is enough for staging; use 3+ for HA.
+#
+# Switching from an existing standalone install: not in-place — backup data, then uninstall + delete PVCs and
+# reinstall, or restore into a fresh RS. Do not flip architecture on a live standalone volume without a migration plan.
+#
+#   # One line (avoids zsh running `-f` as a separate command if a line break misses `\`):
+#   helm upgrade --install mongodb-staging oci://registry-1.docker.io/bitnamicharts/mongodb -n mongodb --create-namespace -f mongodb/environment/staging/values.yml
+#
+# Set auth passwords via --set, ExternalSecret, or replace CHANGEME_* before apply (do not commit secrets).
+# Storage: apply global/nks/storageclass-block-ssd.yml first (NHN NKS block SSD).
+# Service: LoadBalancer — NHN assigns a VIP; restrict exposure (SG + optional loadBalancerSourceRanges).
+
+global:
+  defaultStorageClass: nhn-block-ssd
+  # Chart default is restricted → OPENSSL_FIPS=yes; quote "off" so YAML does not coerce it to boolean.
+  defaultFips: "off"
+
+fips:
+  openssl: "off"
+
+architecture: replicaset
+replicaCount: 1
+# Default chart name for clients: rs0 — add ?replicaSet=rs0 to connection URIs (see MongoDB docs).
+replicaSetName: rs0
+
+fullnameOverride: mongodb-staging
+
+auth:
+  enabled: true
+  # Replica-set key: set `replicaSetKey: "<same-as-cluster>"` here for Git as single source of truth, OR omit it and
+  # keep mongodb-replica-set-key only on the Secret (e.g. from kubectl patch). Never let values and Secret disagree.
+  rootUser: root
+  rootPassword: Q8xgmPZ2rV5w
+  usernames:
+    - staging
+  passwords:
+    - 05yY6kamQqsqUMPg
+  databases:
+    - koneksi
+
+# Used when architecture=standalone. For replicaset, external LB is configured under externalAccess (below).
+service:
+  type: ClusterIP
+  ports:
+    mongodb: 27017
+
+# Per-replica LoadBalancer Services. Chart requires LB IPs, publicNames, OR autoDiscovery (LB VIPs often unknown until provisioned).
+externalAccess:
+  enabled: true
+  autoDiscovery:
+    enabled: true
+  service:
+    type: LoadBalancer
+    ports:
+      mongodb: 27017
+    # loadBalancerSourceRanges:
+    #   - 203.0.113.0/24
+
+# Required when externalAccess.autoDiscovery.enabled (initContainer queries K8s API for LB ingress).
+rbac:
+  create: true
+automountServiceAccountToken: true
+
+persistence:
+  enabled: true
+  storageClass: nhn-block-ssd
+  size: 20Gi
+
+# Cinder/block PVCs are often root-owned; Bitnami runs as UID 1001 → mkdir permission denied without this.
+volumePermissions:
+  enabled: true
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 2Gi
+
+# --- If mongodb container still CrashLoops with exit 1 after OPENSSL_FIPS=no ---
+# 1) Read the real error:
+#      kubectl logs -n mongodb deploy/mongodb-staging -c mongodb --tail=100
+#      kubectl logs -n mongodb deploy/mongodb-staging -c mongodb --previous --tail=100
+# 2) Common after many failed starts: damaged / half-initialized data on the PVC. Only if you
+#    can afford to wipe staging data — scale down, delete PVC, reinstall (new empty volume):
+#      kubectl scale deployment mongodb-staging -n mongodb --replicas=0
+#      kubectl delete pvc mongodb-staging -n mongodb
+#      kubectl scale deployment mongodb-staging -n mongodb --replicas=1
+#    Or: helm uninstall mongodb-staging -n mongodb && kubectl delete pvc mongodb-staging -n mongodb --ignore-not-found
+#    then helm upgrade --install ... again.
+# 3) Optional: uncomment to shrink WiredTiger cache if logs show memory pressure (2Gi limit):
+# extraFlags:
+#   - "--wiredTigerCacheSizeGB=0.25"

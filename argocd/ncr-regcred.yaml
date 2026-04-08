@@ -1,0 +1,25 @@
+# Replace YOUR_USER_ACCESS_KEY / YOUR_SECRET_KEY, then: kubectl apply -f argocd/ncr-regcred.yaml
+#
+# Console shows: docker login 36163004-kr1-registry.container.nhncloud.com/koneksi-tech
+# Including that URL in auths can help if pulls get 401 with host-only keys.
+# Do not commit real keys — rotate any keys that were ever committed to Git.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ncr-regcred
+  namespace: argocd
+type: kubernetes.io/dockerconfigjson
+stringData:
+  .dockerconfigjson: |
+    {
+      "auths": {
+        "https://36163004-kr1-registry.container.nhncloud.com": {
+          "username": "YOUR_NCR_ACCESS_KEY",
+          "password": "YOUR_NCR_SECRET_KEY"
+        },
+        "36163004-kr1-registry.container.nhncloud.com": {
+          "username": "YOUR_NCR_ACCESS_KEY",
+          "password": "YOUR_NCR_SECRET_KEY"
+        }
+      }
+    }

@@ -1,0 +1,36 @@
+# Strategic merge on global/base/deploy/deploy.yml (metadata.name: base-deploy)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: base-deploy
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: data-provenance
+  template:
+    metadata:
+      labels:
+        app: data-provenance
+    spec:
+      imagePullSecrets:
+        - name: ncr-regcred
+      containers:
+        - name: base-deploy
+          image: base-image
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 3070
+          envFrom:
+            - configMapRef:
+                name: data-provenance-config
+            - secretRef:
+                name: data-provenance-secret
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi

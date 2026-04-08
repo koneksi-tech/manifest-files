@@ -1,0 +1,41 @@
+# Helm: argo/argocd-image-updater
+#   helm upgrade --install argocd-image-updater argo/argocd-image-updater -n argocd -f argocd/image-updater-values.yaml
+#
+# NCR — two different things (do not mix them):
+#   • Console "URL & Appkey" shows the NCR *management API*, e.g.
+#     https://kr1-ncr.api.nhncloudservice.com — used with Appkey + NHN API auth headers.
+#     That host is NOT the Docker/OCI registry Image Updater talks to for listing tags.
+#   • Image Updater uses the *registry address* from NCR → Management (Public URI host + path).
+#
+# Auth for docker pull / registry v2 (Image Updater): NHN Account → API Security →
+#   User Access Key = docker username, Secret Key = docker password.
+#   Do not use the NCR Appkey as the docker-registry Secret password unless NHN docs
+#   explicitly say so for your setup; standard flow is Access Key + Secret Key.
+# Pull secret (User Access Key + Secret Key from NHN Account → API Security):
+#   kubectl create secret docker-registry ncr-regcred -n argocd \
+#     --docker-server=https://36163004-kr1-registry.container.nhncloud.com \
+#     --docker-username='YOUR_USER_ACCESS_KEY' \
+#     --docker-password='YOUR_SECRET_KEY'
+#
+# If pulls must use VPC private endpoint only, switch host to:
+#   private-36163004-kr1-registry.container.nhncloud.com (match console Private URI).
+#
+# Git write-back: https://argocd-image-updater.readthedocs.io/en/stable/configuration/git/
+
+config:
+  name: argocd-image-updater-config
+
+  registries:
+    # Image refs: 36163004-kr1-registry.container.nhncloud.com/<registry-name>/<repo>:<tag>
+    - name: NHN NCR (koneksi-tech)
+      prefix: 36163004-kr1-registry.container.nhncloud.com/koneksi-tech
+      api_url: https://36163004-kr1-registry.container.nhncloud.com
+      credentials: pullsecret:argocd/ncr-regcred
+      default: true
+      ping: true
+
+  argocd.grpc_web: "true"
+  argocd.insecure: "false"
+  argocd.plaintext: "false"
+  kube.events: "false"
+  log.level: info

@@ -1,0 +1,43 @@
+# Staging: standalone Redis (Bitnami chart: oci://registry-1.docker.io/bitnamicharts/redis)
+#
+#   helm upgrade --install redis-staging oci://registry-1.docker.io/bitnamicharts/redis \
+#     -n staging --create-namespace -f redis/environment/staging/values.yml
+#
+# Replace CHANGEME_REDIS_PASSWORD or use auth.existingSecret.
+# Storage: apply global/nks/storageclass-block-ssd.yml first (NHN NKS block SSD).
+# Service: LoadBalancer — lock down with cloud SG + optional loadBalancerSourceRanges.
+
+global:
+  defaultStorageClass: nhn-block-ssd
+
+architecture: standalone
+
+fullnameOverride: redis-staging
+
+auth:
+  enabled: true
+  password: uR8tV4wZ7gH2jM5pS1xA9cF6iL0oQ3nE/
+
+master:
+  count: 1
+  persistence:
+    enabled: true
+    storageClass: nhn-block-ssd
+    size: 8Gi
+  service:
+    type: LoadBalancer
+    ports:
+      redis: 6379
+    # loadBalancerSourceRanges:
+    #   - 203.0.113.0/24
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+commonConfiguration: |-
+  appendonly no
+  maxmemory-policy allkeys-lru

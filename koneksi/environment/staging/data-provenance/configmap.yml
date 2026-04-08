@@ -1,0 +1,25 @@
+# Non-sensitive application env (envFrom).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: data-provenance-config
+data:
+  APP_NAME: "Data Provenance"
+  NODE_ENV: "staging"
+  MODE: "release"
+  PORT: "3070"
+  PROVENANCE_PORT: "3070"
+  # Needs Service postgresql-staging-app-b in namespace postgresql. If missing, apply postgres-app-b-main-service.yml first.
+  # In-cluster: this DNS. External clients: use kubectl get svc -n postgresql postgresql-staging-app-b → EXTERNAL-IP.
+  PROVENANCE_DB_HOST: "180.210.83.22"
+  PROVENANCE_DB_PORT: "5432"
+  PROVENANCE_DB_USER: "app_b"
+  # App default: encrypted client connection (libpq sslmode). Use `require` (PostgreSQL spelling — not "required").
+  PROVENANCE_DB_SSL_MODE: "disable"
+  PROVENANCE_DB_NAME: "koneksi_provenance"
+  OUTBOX_MONGO_DATABASE: "koneksi"
+  VAULT_ADDR: "http://133.186.244.78:8200"
+  VAULT_NAMESPACE: ""
+  VAULT_TRANSIT_KEY: "prov-staging-rsa"
+  VAULT_TLS_SKIP: "false"
+  POLLER_INTERVAL_SECONDS: "30"

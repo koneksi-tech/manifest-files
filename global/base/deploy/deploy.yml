@@ -4,7 +4,9 @@ kind: Deployment
 metadata:
   name: base-deploy
 spec:
-  selector: {}
+  selector:
+    matchLabels:
+      app: base-deploy
   strategy:
     rollingUpdate:
       maxSurge: 25%
@@ -47,9 +49,7 @@ spec:
               name: base-cm
           - secretRef:
               name: base-secret
-        ports:
-        - containerPort: 8000
-          name: http
+        # ports: set in overlays (containerPort/name vary by app)
         volumeMounts: []
       imagePullSecrets:
         - name: regcred

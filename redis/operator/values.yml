@@ -1,3 +1,0 @@
-redisOperator:
-  imageTag: "latest"
-  watch_namespace: "redis"

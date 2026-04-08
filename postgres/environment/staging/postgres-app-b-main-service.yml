@@ -1,0 +1,31 @@
+# Recreates the main (non-headless) Service when it is missing from the cluster even though Helm manifest includes it.
+# Symptom: `kubectl get svc -n postgresql` shows postgresql-staging-app-b-headless but NOT postgresql-staging-app-b.
+#
+#   kubectl apply -f postgres/environment/staging/postgres-app-b-main-service.yml
+#
+# Matches cloudpirates/timescaledb chart 0.10.4 service.yaml (selector + labels). Helm annotations keep ownership aligned.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql-staging-app-b
+  namespace: postgresql
+  labels:
+    app.kubernetes.io/instance: postgres-staging-app-b
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: timescaledb
+    app.kubernetes.io/version: 2.26.1
+    helm.sh/chart: timescaledb-0.10.4
+  annotations:
+    meta.helm.sh/release-name: postgres-staging-app-b
+    meta.helm.sh/release-namespace: postgresql
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+      name: postgresql
+  selector:
+    app.kubernetes.io/instance: postgres-staging-app-b
+    app.kubernetes.io/name: timescaledb

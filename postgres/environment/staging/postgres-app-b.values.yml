@@ -1,0 +1,88 @@
+# Staging instance B — TimescaleDB (NOT Bitnami PostgreSQL).
+#
+# Chart: CloudPirates TimescaleDB — uses docker.io/timescale/timescaledb with timescaledb in shared_preload_libraries.
+#
+#   helm upgrade --install postgres-staging-app-b oci://registry-1.docker.io/cloudpirates/timescaledb \
+#     --version 0.10.4 \
+#     -n postgresql --create-namespace \
+#     -f postgres/environment/staging/postgres-app-b.values.yml
+#
+# First-time switch from Bitnami: uninstall old release, delete its PVC(s), then install this chart (empty data dir).
+#   helm uninstall postgres-staging-app-b -n postgresql
+#   kubectl delete pvc -n postgresql -l app.kubernetes.io/instance=postgres-staging-app-b
+#
+# Storage: apply global/nks/storageclass-block-ssd.yml first (NHN NKS block SSD).
+#
+# Service: LoadBalancer (below). If `kubectl get svc -n postgresql` lists *-headless but not postgresql-staging-app-b,
+# Helm’s manifest still includes that Service — apply the missing object:
+#   kubectl apply -f postgres/environment/staging/postgres-app-b-main-service.yml
+# Then `helm upgrade ...` stays consistent. Restrict exposure: SGs + optional service.annotations on this chart.
+#
+# Cinder RWO volumes are often root-owned. The timescale/timescaledb image uses the standard Postgres
+# entrypoint: it must start as root to create PGDATA and fix permissions, then drops to the postgres user.
+# The chart default runAsUser:999 breaks first boot on many CSI volumes (mkdir permission denied).
+# runAsUser:0 matches Docker Hub behavior. If your namespace enforces restricted PSA, allow this workload
+# (e.g. baseline) or use an initContainer chown instead.
+
+fullnameOverride: postgresql-staging-app-b
+
+podSecurityContext:
+  fsGroup: 999
+  fsGroupChangePolicy: OnRootMismatch
+
+containerSecurityContext:
+  runAsNonRoot: false
+  runAsUser: 0
+  runAsGroup: 0
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  # Chart default is capabilities.drop: [ALL] (CAP_CHOWN removed). Helm merges maps — you must override drop explicitly.
+  capabilities:
+    drop: []
+
+image:
+  registry: docker.io
+  repository: timescale/timescaledb
+  # Pin major PG to match your app (pg16 / pg17 tags exist on Docker Hub).
+  tag: "2.26.1-pg16"
+  imagePullPolicy: Always
+
+replicaCount: 1
+
+auth:
+  # Password for POSTGRES_USER (app_b). Chart stores as Secret key postgres-password.
+  postgresPassword: "2hYk5LtM6l5hA4Kg"
+
+# Standard postgres image env: first boot creates user + DB.
+extraEnvVars:
+  - name: POSTGRES_USER
+    value: "app_b"
+  - name: POSTGRES_DB
+    value: "koneksi_provenance"
+
+config:
+  # Server TLS is off unless you add ssl=on + cert files (e.g. via extraConfig + mounted Secret). Chart default postgresql.conf has no SSL.
+  postgresqlSharedPreloadLibraries: "timescaledb"
+  postgresqlMaxConnections: 100
+  timescaledbTelemetry: "off"
+  timescaledbMaxBackgroundWorkers: 8
+
+service:
+  type: LoadBalancer
+  port: 5432
+  targetPort: 5432
+
+persistence:
+  enabled: true
+  storageClass: nhn-block-ssd
+  size: 20Gi
+  accessModes:
+    - ReadWriteOnce
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 2Gi

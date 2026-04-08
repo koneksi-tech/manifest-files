@@ -1,0 +1,22 @@
+# Host: nhn-data-provenance.koneksi.com — TLS Secret data-provenance-tls (create separately).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: base-ingress
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - nhn-data-provenance.koneksi.com
+      secretName: data-provenance-tls
+  rules:
+    - host: nhn-data-provenance.koneksi.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: data-provenance
+                port:
+                  name: http

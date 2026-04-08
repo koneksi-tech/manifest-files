@@ -1,0 +1,25 @@
+# One-off NCR pull test. Needs Secret ncr-regcred in argocd.
+#
+#   kubectl apply -f argocd/ncr-pull-test-pod.yaml
+#   kubectl get pod ncr-pull-test -n argocd -w
+#   kubectl delete pod ncr-pull-test -n argocd
+#
+# "401 Unauthorized" → fix ncr-regcred (Access Key = username, Secret = password).
+# "not found" / NotFound → auth is OK; this reference does not exist in NCR. Fix:
+#   • NCR → Management → open the registry → View Image → use the exact path + tag shown.
+#   • Path: <host>/koneksi-tech/koneksi-backend[:tag] (registry koneksi-tech, repo koneksi-backend).
+#   • Tag example: v0.0.15-staging (must exist in NCR for this repo).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ncr-pull-test
+  namespace: argocd
+spec:
+  restartPolicy: Never
+  imagePullSecrets:
+    - name: ncr-regcred
+  containers:
+    - name: app
+      image: 36163004-kr1-registry.container.nhncloud.com/koneksi-tech/koneksi-backend:v0.0.15-staging
+      imagePullPolicy: Always
+      command: ["sh", "-c", "echo OK && sleep 3600"]

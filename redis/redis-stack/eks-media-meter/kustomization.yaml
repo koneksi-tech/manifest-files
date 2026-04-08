@@ -1,5 +1,0 @@
-resources:
-- statefulset.yml
-# - secret.yml
-- namespace.yml
-- service.yaml

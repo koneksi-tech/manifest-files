@@ -1,0 +1,80 @@
+# Apply (from repo root):
+#   kubectl apply -k koneksi/environment/staging/data-provenance
+#
+# Same pattern as koneksi-backend: global/base deploy + service + ingress, namespace koneksi-staging.
+#
+# Prerequisites:
+#   • TLS for this host:
+#       kubectl create secret tls data-provenance-tls -n koneksi-staging \
+#         --cert=fullchain.pem --key=privkey.pem
+#   • Edit configmap.yml / secret-env.yml and images.newTag in this file for your app image.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: koneksi-staging
+
+resources:
+  - namespace.yml
+  - ../../../../global/base/deploy
+  - ../../../../global/base/service
+  - ../../../../global/base/ingress
+  - ncr-regcred.yaml
+  - configmap.yml
+  - secret-env.yml
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: data-provenance
+      app.kubernetes.io/part-of: koneksi
+    includeSelectors: true
+
+images:
+  - name: base-image
+    newName: 36163004-kr1-registry.container.nhncloud.com/koneksi-tech/data-provenance
+    newTag: v0.0.4-staging
+
+patches:
+  - path: patches/deploy.yml
+  - path: patches/service.yml
+  - path: patches/ingress.yml
+  - target:
+      kind: Service
+      name: base-svc
+    patch: |-
+      - op: replace
+        path: /spec/ports
+        value:
+          - name: http
+            protocol: TCP
+            port: 80
+            targetPort: http
+  - target:
+      kind: Deployment
+      name: base-deploy
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/imagePullSecrets
+        value:
+          - name: ncr-regcred
+  - target:
+      kind: Deployment
+      name: base-deploy
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: data-provenance
+  - target:
+      kind: Service
+      name: base-svc
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: data-provenance
+  - target:
+      kind: Ingress
+      name: base-ingress
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: data-provenance

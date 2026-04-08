@@ -1,0 +1,14 @@
+# Strategic merge on global/base/service/service.yml (metadata.name: base-svc)
+apiVersion: v1
+kind: Service
+metadata:
+  name: base-svc
+spec:
+  type: LoadBalancer
+  selector:
+    app: data-provenance
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: http
