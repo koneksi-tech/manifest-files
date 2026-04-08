@@ -23,7 +23,7 @@ resources:
   - ../../../../global/base/ingress
   # - ncr-regcred.yaml
   - configmap.yml
-  - secret-env.yml
+  # - secret-env.yml
 
 labels:
   - pairs:
