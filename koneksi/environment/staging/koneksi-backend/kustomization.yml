@@ -21,7 +21,7 @@ resources:
   - ../../../../global/base/deploy
   - ../../../../global/base/service
   - ../../../../global/base/ingress
-  - ncr-regcred.yaml
+  # - ncr-regcred.yaml
   - configmap.yml
   - secret-env.yml
 
