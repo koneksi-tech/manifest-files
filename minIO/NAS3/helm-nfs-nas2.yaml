@@ -1,5 +1,0 @@
-nfs:
-  path: /net4-storage-class
-  server: 192.168.4.104
-storageClass:
-  name: nfs-nas2

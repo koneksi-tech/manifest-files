@@ -136,31 +136,72 @@
       <pre class="mermaid">
 flowchart LR
   subgraph Git["Git repository"]
-    MF["koneksi-tech/manifest-files"]
+    MF["koneksi-tech/manifest-files main"]
     KB["kustomize: koneksi-backend"]
     DP["kustomize: data-provenance"]
+    S3["kustomize: s3-gateway"]
   end
-  subgraph Argo["Cluster: argocd"]
-    A1["Application: koneksi-backend-staging"]
-    A2["Application: data-provenance-staging"]
+  subgraph Argo["Cluster: namespace argocd"]
+    A1["App: koneksi-backend-staging"]
+    A2["App: data-provenance-staging"]
+    A3["App: s3-gateway-staging"]
     IU["Image Updater optional"]
   end
   subgraph NCR["NHN NCR"]
-    IMG1["koneksi-backend image"]
-    IMG2["data-provenance image"]
+    IMG1["koneksi-backend"]
+    IMG2["data-provenance"]
+    IMG3["koneksi-s3-gateway"]
   end
   MF --> KB
   MF --> DP
+  MF --> S3
   MF --> A1
   MF --> A2
+  MF --> A3
   A1 --> KB
   A2 --> DP
+  A3 --> S3
   IU -.-> A1
   IU -.-> A2
+  IU -.-> A3
   IMG1 --> A1
   IMG2 --> A2
+  IMG3 --> A3
       </pre>
     </div>
+
+    <h2>1b. Argo CD setup (staging Applications)</h2>
+    <p>Application manifests live under <code>koneksi/argocd/environment/staging/</code>. Each Application uses <code>spec.source.repoURL</code> <code>git@github.com:koneksi-tech/manifest-files.git</code>, <code>targetRevision: main</code>, and a Kustomize <code>path</code> below; destination is <code>koneksi-staging</code>. Register the Git repo in Argo CD first (<code>argocd/SECRETS.md</code>).</p>
+    <div class="diagram">
+      <pre class="mermaid">
+flowchart TB
+  subgraph Apps["Argo CD Applications metadata.namespace = argocd"]
+    T1["koneksi-backend-staging"]
+    T2["data-provenance-staging"]
+    T3["s3-gateway-staging"]
+  end
+  subgraph Paths["spec.source.path on branch main"]
+    P1["koneksi/environment/staging/koneksi-backend"]
+    P2["koneksi/environment/staging/data-provenance"]
+    P3["koneksi/environment/staging/s3-gateway"]
+  end
+  subgraph Dest["spec.destination"]
+    NS["namespace: koneksi-staging"]
+  end
+  T1 --> P1 --> NS
+  T2 --> P2 --> NS
+  T3 --> P3 --> NS
+      </pre>
+    </div>
+    <ul>
+      <li><strong>Apply</strong> (from repo root):<br />
+        <code style="font-size:0.85rem;">kubectl apply -f koneksi/argocd/environment/staging/backend-staging-argocd.yml -n argocd</code><br />
+        <code style="font-size:0.85rem;">kubectl apply -f koneksi/argocd/environment/staging/data-provenance-argocd.yml -n argocd</code><br />
+        <code style="font-size:0.85rem;">kubectl apply -f koneksi/argocd/environment/staging/s3-gateway-argocd.yml -n argocd</code>
+      </li>
+      <li><strong>Shared infra</strong>: <code>Namespace</code> and <code>Secret/ncr-regcred</code> are created by the <strong>koneksi-backend</strong> overlay. Sync backend (or apply that overlay) before apps that omit duplicate Secret manifests.</li>
+      <li><strong>Image Updater</strong> (optional): Applications annotate <code>argocd-image-updater.argoproj.io/image-list</code> for <code>base-image</code> → NCR; <code>write-back-method: argocd</code> updates the Application in-cluster.</li>
+    </ul>
 
     <h2>2. Kubernetes runtime (staging)</h2>
     <p>Application workloads run in <code>koneksi-staging</code>. Shared namespace and pull credentials are owned by the <strong>koneksi-backend</strong> Argo CD Application to avoid duplicate ownership warnings. Ingress exposes HTTP(S) via the cluster ingress controller.</p>
@@ -176,6 +217,7 @@ flowchart TB
   subgraph NS["Namespace: koneksi-staging"]
     BE["Deployment: koneksi-backend :3000"]
     PV["Deployment: data-provenance :3070"]
+    S3G["Deployment: s3-gateway :3090"]
     CM["ConfigMaps & Secrets"]
     NCR["Secret: ncr-regcred"]
   end
@@ -187,6 +229,7 @@ flowchart TB
   B --> IC
   IC --> BE
   IC --> PV
+  IC --> S3G
   BE --> MG
   BE --> PG
   BE --> RD
@@ -196,17 +239,22 @@ flowchart TB
   CM --> PV
   NCR --> BE
   NCR --> PV
+  NCR --> S3G
       </pre>
     </div>
 
     <div class="grid grid-2">
       <div class="card">
         <strong>koneksi-backend</strong>
-        <p style="margin:0.5rem 0 0;">API &amp; core services; MongoDB, Postgres/Timescale, Redis; workers (e.g. Asynq).</p>
+        <p style="margin:0.5rem 0 0;">API &amp; core services; MongoDB, Postgres/Timescale, Redis; workers (e.g. Asynq). Owns namespace + <code>ncr-regcred</code> in this layout.</p>
       </div>
       <div class="card">
         <strong>data-provenance</strong>
         <p style="margin:0.5rem 0 0;">Provenance pipeline; TimescaleDB for time-series; Mongo change streams / outbox where configured.</p>
+      </div>
+      <div class="card" style="grid-column: 1 / -1;">
+        <strong>s3-gateway</strong>
+        <p style="margin:0.5rem 0 0;">S3-facing gateway; uses existing <code>ncr-regcred</code> via <code>imagePullSecrets</code>; ingress host e.g. <code>nhn-s3-gateway.koneksi.co.kr</code>.</p>
       </div>
     </div>
 
@@ -249,7 +297,8 @@ flowchart TB
   ROOT --> A["koneksi/argocd/environment/staging/"]
   K --> KB2["koneksi-backend/"]
   K --> DP2["data-provenance/"]
-  A --> APP["Argo CD Application YAML"]
+  K --> S3K["s3-gateway/"]
+  A --> APP["*.yml Argo CD Applications"]
       </pre>
     </div>
 
