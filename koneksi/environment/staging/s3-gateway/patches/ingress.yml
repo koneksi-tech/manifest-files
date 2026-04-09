@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: base-ingress
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - nhn-s3-gateway.koneksi.co.kr
+      secretName: s3-gateway-tls
+  rules:
+    - host: nhn-s3-gateway.koneksi.co.kr
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: s3-gateway
+                port:
+                  name: http

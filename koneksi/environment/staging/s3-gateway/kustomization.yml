@@ -1,0 +1,78 @@
+# Apply (from repo root):
+#   kubectl apply -k koneksi/environment/staging/s3-gateway
+#
+# Namespace: ensure koneksi-staging exists (e.g. koneksi-backend overlay or kubectl create ns).
+#
+# NCR pull: do NOT list ncr-regcred.yaml here — that would re-apply the same Secret and can duplicate
+# Argo CD ownership with backend. The Deployment already uses the existing secret by *name* via
+# imagePullSecrets: ncr-regcred in patches/deploy.yml (no duplicate Secret manifest needed).
+#
+# TLS: kubectl create secret tls s3-gateway-tls -n koneksi-staging --cert=fullchain.pem --key=privkey.pem
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: koneksi-staging
+
+resources:
+  - ../../../../global/base/deploy
+  - ../../../../global/base/service
+  - ../../../../global/base/ingress
+  # - configmap.yml
+  # - secret-env.yml
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: s3-gateway
+      app.kubernetes.io/part-of: koneksi
+    includeSelectors: true
+
+images:
+  - name: base-image
+    newName: 36163004-kr1-registry.container.nhncloud.com/koneksi-tech/koneksi-s3-gateway
+    newTag: v0.0.1-staging
+
+patches:
+  - path: patches/deploy.yml
+  - path: patches/service.yml
+  - path: patches/ingress.yml
+  - target:
+      kind: Service
+      name: base-svc
+    patch: |-
+      - op: replace
+        path: /spec/ports
+        value:
+          - name: http
+            protocol: TCP
+            port: 80
+            targetPort: http
+  - target:
+      kind: Deployment
+      name: base-deploy
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: s3-gateway
+  - target:
+      kind: Service
+      name: base-svc
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: s3-gateway
+  - target:
+      kind: Ingress
+      name: base-ingress
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: s3-gateway
+  - target:
+      kind: Deployment
+      name: base-deploy
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/imagePullSecrets
+        value:
+          - name: ncr-regcred

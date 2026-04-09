@@ -7,3 +7,5 @@ id_ed25519
 .env
 .env.*
 *.tgz
+secret-env.yml
+ncr-regcred.yaml

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Koneksi — Platform Architecture (Staging)</title>
+  <meta name="description" content="GitOps, Kubernetes staging topology, and data layer for Koneksi." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg: #0c0f14;
+      --surface: #141a24;
+      --surface2: #1a2230;
+      --border: #2a3548;
+      --text: #e8ecf4;
+      --muted: #8b98b0;
+      --accent: #5b9fd4;
+      --accent2: #7c6cf0;
+      --ok: #3ecf8e;
+      --warn: #e8b84a;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 1.05rem;
+    }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+    header {
+      text-align: center;
+      padding: 3rem 0 2.5rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2.5rem;
+      background: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(91, 159, 212, 0.18), transparent);
+    }
+    header h1 {
+      font-size: clamp(1.75rem, 4vw, 2.35rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 0.5rem;
+    }
+    header p.lead {
+      color: var(--muted);
+      max-width: 36rem;
+      margin: 0 auto;
+      font-size: 1.1rem;
+    }
+    .badge {
+      display: inline-block;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--accent);
+      margin-top: 1rem;
+    }
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin: 2.5rem 0 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    h3 { font-size: 1.05rem; font-weight: 600; color: var(--muted); margin: 1.5rem 0 0.75rem; }
+    p { margin: 0 0 1rem; color: #c5cdd8; }
+    ul { margin: 0 0 1rem; padding-left: 1.25rem; color: #c5cdd8; }
+    li { margin-bottom: 0.35rem; }
+    .diagram {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin: 1.25rem 0;
+      overflow-x: auto;
+    }
+    .diagram .mermaid { display: flex; justify-content: center; text-align: center; }
+    .diagram pre.mermaid { margin: 0; background: transparent; border: 0; font-family: inherit; }
+    .grid {
+      display: grid;
+      gap: 1rem;
+      margin: 1.25rem 0;
+    }
+    @media (min-width: 640px) {
+      .grid-2 { grid-template-columns: 1fr 1fr; }
+    }
+    .card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.15rem 1.25rem;
+    }
+    .card strong { color: var(--accent); font-weight: 600; }
+    .card code {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.82rem;
+      color: var(--warn);
+    }
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    @media print {
+      body { background: #fff; color: #111; }
+      header { background: none; }
+      .diagram { break-inside: avoid; border: 1px solid #ccc; }
+      .card { border: 1px solid #ccc; }
+      p, ul, li { color: #333; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Koneksi platform architecture</h1>
+      <p class="lead">Staging environment: GitOps-driven Kubernetes layout, application services, and backing data stores as defined in the <strong>manifest-files</strong> repository.</p>
+      <span class="badge">manifest-files · NHN NKS · Argo CD</span>
+    </header>
+
+    <h2>1. GitOps control plane</h2>
+    <p>Declarative state lives in Git; Argo CD reconciles the cluster to match. Image updates can be automated via Argo CD Image Updater (staging tags on NHN Container Registry).</p>
+    <div class="diagram">
+      <pre class="mermaid">
+flowchart LR
+  subgraph Git["Git repository"]
+    MF["koneksi-tech/manifest-files"]
+    KB["kustomize: koneksi-backend"]
+    DP["kustomize: data-provenance"]
+  end
+  subgraph Argo["Cluster: argocd"]
+    A1["Application: koneksi-backend-staging"]
+    A2["Application: data-provenance-staging"]
+    IU["Image Updater optional"]
+  end
+  subgraph NCR["NHN NCR"]
+    IMG1["koneksi-backend image"]
+    IMG2["data-provenance image"]
+  end
+  MF --> KB
+  MF --> DP
+  MF --> A1
+  MF --> A2
+  A1 --> KB
+  A2 --> DP
+  IU -.-> A1
+  IU -.-> A2
+  IMG1 --> A1
+  IMG2 --> A2
+      </pre>
+    </div>
+
+    <h2>2. Kubernetes runtime (staging)</h2>
+    <p>Application workloads run in <code>koneksi-staging</code>. Shared namespace and pull credentials are owned by the <strong>koneksi-backend</strong> Argo CD Application to avoid duplicate ownership warnings. Ingress exposes HTTP(S) via the cluster ingress controller.</p>
+    <div class="diagram">
+      <pre class="mermaid">
+flowchart TB
+  subgraph Users["Clients"]
+    B["Browsers / API clients"]
+  end
+  subgraph Ingress["Ingress layer"]
+    IC["ingress-nginx or equivalent"]
+  end
+  subgraph NS["Namespace: koneksi-staging"]
+    BE["Deployment: koneksi-backend :3000"]
+    PV["Deployment: data-provenance :3070"]
+    CM["ConfigMaps & Secrets"]
+    NCR["Secret: ncr-regcred"]
+  end
+  subgraph Data["Data plane namespaces"]
+    PG["postgresql — Postgres / Timescale"]
+    MG["mongodb — Replica set"]
+    RD["redis"]
+  end
+  B --> IC
+  IC --> BE
+  IC --> PV
+  BE --> MG
+  BE --> PG
+  BE --> RD
+  PV --> PG
+  PV --> MG
+  CM --> BE
+  CM --> PV
+  NCR --> BE
+  NCR --> PV
+      </pre>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <strong>koneksi-backend</strong>
+        <p style="margin:0.5rem 0 0;">API &amp; core services; MongoDB, Postgres/Timescale, Redis; workers (e.g. Asynq).</p>
+      </div>
+      <div class="card">
+        <strong>data-provenance</strong>
+        <p style="margin:0.5rem 0 0;">Provenance pipeline; TimescaleDB for time-series; Mongo change streams / outbox where configured.</p>
+      </div>
+    </div>
+
+    <h2>3. Data &amp; platform services</h2>
+    <div class="diagram">
+      <pre class="mermaid">
+flowchart LR
+  subgraph Databases["Stateful services"]
+    PA["PostgreSQL A Bitnami"]
+    PB["TimescaleDB B CloudPirates chart"]
+    MDB["MongoDB Bitnami RS rs0"]
+    RS["Redis Bitnami staging"]
+  end
+  subgraph Storage["Volumes"]
+    SC["nhn-block-ssd / Cinder"]
+  end
+  PA --> SC
+  PB --> SC
+  MDB --> SC
+  RS --> SC
+      </pre>
+    </div>
+    <ul>
+      <li><strong>PostgreSQL A</strong> — Helm values under <code>postgres/environment/staging/postgres-app-a.values.yml</code>.</li>
+      <li><strong>TimescaleDB B</strong> — <code>postgres-app-b.values.yml</code>; extension <code>timescaledb</code>; optional LoadBalancer or in-cluster Service DNS.</li>
+      <li><strong>MongoDB</strong> — Replica set for Change Streams; external access via Bitnami <code>externalAccess</code> when enabled.</li>
+      <li><strong>Redis</strong> — Staging values under <code>redis/environment/staging/values.yml</code>.</li>
+    </ul>
+
+    <h2>4. Repository map (high level)</h2>
+    <div class="diagram">
+      <pre class="mermaid">
+flowchart TB
+  ROOT["manifest-files/"]
+  ROOT --> K["koneksi/environment/staging/"]
+  ROOT --> P["postgres/environment/staging/"]
+  ROOT --> M["mongodb/environment/staging/"]
+  ROOT --> R["redis/environment/staging/"]
+  ROOT --> N["nginx/"]
+  ROOT --> A["koneksi/argocd/environment/staging/"]
+  K --> KB2["koneksi-backend/"]
+  K --> DP2["data-provenance/"]
+  A --> APP["Argo CD Application YAML"]
+      </pre>
+    </div>
+
+    <h2>5. Security &amp; operations notes</h2>
+    <ul>
+      <li>Repository credentials and TLS material should not be committed; use <code>argocd/SECRETS.md</code> patterns, Sealed Secrets, or external secret stores.</li>
+      <li>Restrict LoadBalancers with cloud security groups and <code>loadBalancerSourceRanges</code> where supported.</li>
+      <li>Rotate any credentials that were ever exposed in Git history.</li>
+    </ul>
+
+    <footer>
+      Generated for documentation and presentations. Open this file in a browser; for PDF use Print → Save as PDF.
+      <br />Diagrams use Mermaid.js (requires network for first load from CDN, or vendor the library for air-gapped use).
+    </footer>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: "dark",
+      themeVariables: {
+        primaryColor: "#1a2230",
+        primaryTextColor: "#e8ecf4",
+        primaryBorderColor: "#2a3548",
+        lineColor: "#5b9fd4",
+        secondaryColor: "#141a24",
+        tertiaryColor: "#0c0f14"
+      },
+      flowchart: { curve: "basis", padding: 12 }
+    });
+  </script>
+</body>
+</html>
