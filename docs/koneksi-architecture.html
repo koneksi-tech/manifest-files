@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Koneksi — Platform Architecture (Staging)</title>
-  <meta name="description" content="GitOps, Kubernetes staging topology, and data layer for Koneksi." />
+  <meta name="description" content="Deployment strategy: GitHub Actions, NHN Cloud NCR, Argo CD, and Kubernetes staging topology for Koneksi." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -127,11 +127,105 @@
     <header>
       <h1>Koneksi platform architecture</h1>
       <p class="lead">Staging environment: GitOps-driven Kubernetes layout, application services, and backing data stores as defined in the <strong>manifest-files</strong> repository.</p>
-      <span class="badge">manifest-files · NHN NKS · Argo CD</span>
+      <span class="badge">GitHub Actions · NCR · Argo CD · NHN NKS</span>
     </header>
 
+    <h2>0. Deployment strategy</h2>
+    <p>Applications are built and <strong>published</strong> to <strong>NHN Cloud NCR</strong> (NHN Container Registry) by <strong>GitHub Actions</strong> in each service repository. Cluster state and image references are driven from the <strong>manifest-files</strong> Git repo. <strong>Argo CD</strong> on <strong>NHN Kubernetes Service (NKS)</strong> continuously reconciles those manifests; <strong>Argo CD Image Updater</strong> (optional) moves staging workloads to new NCR tags without editing Git.</p>
+
+    <h3>End-to-end flow</h3>
+    <div class="diagram">
+      <pre class="mermaid">
+flowchart TB
+  subgraph Dev["Developers"]
+    D["Push code / tags"]
+  end
+  subgraph GH["GitHub"]
+    AR["App repos — backend, data-provenance, s3-gateway"]
+    MF["manifest-files — Kustomize + Argo Applications"]
+    GHA["GitHub Actions — build, test, docker push"]
+  end
+  subgraph NCR["NHN Cloud NCR"]
+    R["Publish — kr1-registry.container.nhncloud.com"]
+    T["Tags e.g. v1.2.3-staging"]
+  end
+  subgraph NKS["NHN Kubernetes NKS"]
+    subgraph ARGO_NS["namespace argocd"]
+      CD["Argo CD — sync from Git"]
+      IU["Image Updater optional"]
+    end
+    subgraph APP_NS["namespace koneksi-staging"]
+      POD["Deployments pull from NCR"]
+    end
+  end
+  D --> AR
+  AR --> GHA
+  GHA -->|docker push| R
+  R --> T
+  MF --> CD
+  CD -->|kubectl apply equivalent| POD
+  T -.->|new tag policy| IU
+  IU -.->|write-back to Application| CD
+  T -->|imagePull + ncr-regcred| POD
+      </pre>
+    </div>
+
+    <h3>CI pipeline (GitHub Actions)</h3>
+    <p>Typical pattern per application repository: workflow triggers on push to main or on release tags → checkout → build container → authenticate to NCR → <code>docker push</code> with a version or <code>-staging</code> tag. NCR credentials are stored as GitHub encrypted secrets (not in this repo). The manifest repo does not build images; it only declares which image digest or tag workloads should run.</p>
+    <div class="diagram">
+      <pre class="mermaid">
+sequenceDiagram
+  participant Dev as Developer
+  participant Repo as App GitHub repo
+  participant GHA as GitHub Actions
+  participant NCR as NHN Cloud NCR
+  participant AC as Argo CD Application
+  participant K8s as Pod in koneksi-staging
+
+  Dev->>Repo: Push commit or tag
+  Repo->>GHA: Trigger workflow
+  GHA->>GHA: Build image Dockerfile
+  GHA->>NCR: Publish image tag
+  Note over NCR,K8s: Image Updater may bump Application params
+  AC->>NCR: Rollout pulls new image
+  K8s->>NCR: imagePullSecrets ncr-regcred
+      </pre>
+    </div>
+    <ul>
+      <li><strong>Publish</strong>: CI is the only path that should push application images to NCR for production-like environments.</li>
+      <li><strong>Pull</strong>: The cluster uses a docker-registry <code>Secret</code> (<code>ncr-regcred</code>) so nodes can pull private images from NCR.</li>
+    </ul>
+
+    <h3>GitOps delivery &amp; image updates</h3>
+    <div class="diagram">
+      <pre class="mermaid">
+flowchart LR
+  subgraph Sources["What changes"]
+    GIT["manifest-files Git YAML Kustomize"]
+    NCR2["NCR new tags from CI"]
+  end
+  subgraph Argo["Argo CD"]
+    SYNC["Detect drift &amp; sync"]
+    APP["Application CRs"]
+  end
+  subgraph Run["Where apps run"]
+    K["Kubernetes Deployments koneksi-staging"]
+  end
+  GIT --> SYNC
+  SYNC --> K
+  NCR2 --> IU2["Image Updater"]
+  IU2 --> APP
+  APP --> SYNC
+      </pre>
+    </div>
+    <ul>
+      <li><strong>Declarative deploy</strong>: Argo CD watches <code>manifest-files</code>; each Application points at a Kustomize path and destination namespace. Automated sync applies changes when Git (or Image Updater write-back) updates the desired state.</li>
+      <li><strong>Image line</strong>: Staging Applications annotate <code>argocd-image-updater.argoproj.io/image-list</code> so <code>base-image</code> tracks an NCR repository; allowed tags often match <code>^v[0-9].*-staging$</code>. <code>write-back-method: argocd</code> stores the new tag on the Application in the cluster.</li>
+      <li><strong>Manual alternative</strong>: Bump the image in Kustomize or patches in Git and merge; Argo CD syncs on the next reconciliation.</li>
+    </ul>
+
     <h2>1. GitOps control plane</h2>
-    <p>Declarative state lives in Git; Argo CD reconciles the cluster to match. Image updates can be automated via Argo CD Image Updater (staging tags on NHN Container Registry).</p>
+    <p>Declarative state lives in Git; Argo CD reconciles the cluster to match. Image updates can be automated via Argo CD Image Updater (staging tags in NCR).</p>
     <div class="diagram">
       <pre class="mermaid">
 flowchart LR

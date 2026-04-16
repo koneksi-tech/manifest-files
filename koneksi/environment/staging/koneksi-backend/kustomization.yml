@@ -22,7 +22,9 @@ resources:
   - ../../../../global/base/service
   - ../../../../global/base/ingress
   # - ncr-regcred.yaml
-  - configmap.yml
+  # - configmap.yml
+  # secret-env.yml: when commented out, Argo/kustomize does NOT update koneksi-backend-secret.
+  # Apply secrets manually (or use SealedSecrets / ExternalSecrets) then rollout restart the Deployment.
   # - secret-env.yml
 
 labels:
