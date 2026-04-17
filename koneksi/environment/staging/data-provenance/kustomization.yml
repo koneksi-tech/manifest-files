@@ -21,8 +21,8 @@ resources:
   - ../../../../global/base/deploy
   - ../../../../global/base/service
   - ../../../../global/base/ingress
-  - configmap.yml
-  - secret-env.yml
+  # - configmap.yml
+  # - secret-env.yml
 
 labels:
   - pairs:

@@ -20,6 +20,6 @@ data:
   OUTBOX_MONGO_DATABASE: "koneksi"
   VAULT_ADDR: "http://133.186.244.78:8200"
   VAULT_NAMESPACE: ""
-  VAULT_TRANSIT_KEY: "prov-staging-rsa"
+  VAULT_TRANSIT_KEY: "prov-staging"
   VAULT_TLS_SKIP: "false"
   POLLER_INTERVAL_SECONDS: "30"
