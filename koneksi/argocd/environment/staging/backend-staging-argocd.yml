@@ -17,7 +17,8 @@ metadata:
   annotations:
     # Kustomize image name `base-image` → NCR image; track newest tag matching staging (adjust regexp as needed).
     argocd-image-updater.argoproj.io/image-list: base-image=36163004-kr1-registry.container.nhncloud.com/koneksi-tech/koneksi-backend
-    argocd-image-updater.argoproj.io/base-image.update-strategy: latest
+    # v1.1+: "latest" renamed to "newest-build" (see Image Updater logs if you use legacy name).
+    argocd-image-updater.argoproj.io/base-image.update-strategy: newest-build
     argocd-image-updater.argoproj.io/base-image.allow-tags: regexp:^v[0-9].*-staging$
     # In-cluster write-back (patches Application / parameters). For git write-back, set method to git and use git-branch on the *manifest* repo.
     argocd-image-updater.argoproj.io/write-back-method: argocd

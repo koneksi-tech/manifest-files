@@ -17,7 +17,7 @@ kind: Kustomization
 namespace: koneksi-staging
 
 resources:
-  - namespace.yml
+  # - namespace.yml
   - ../../../../global/base/deploy
   - ../../../../global/base/service
   - ../../../../global/base/ingress
@@ -36,7 +36,7 @@ labels:
 images:
   - name: base-image
     newName: 36163004-kr1-registry.container.nhncloud.com/koneksi-tech/koneksi-backend
-    newTag: v0.0.15-staging
+    newTag: v0.0.19-staging
 
 patches:
   - path: patches/deploy.yml

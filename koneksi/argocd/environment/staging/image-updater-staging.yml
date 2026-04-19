@@ -1,0 +1,19 @@
+# Argo CD Image Updater v1.1+ (operator) — requires an ImageUpdater CR; it does not scan Applications by default.
+# This CR selects staging Applications and tells the controller to read image rules from each Application's
+# argocd-image-updater.argoproj.io/* annotations (same as pre-1.1 behavior).
+#
+# Apply into argocd namespace (same as Application manifests):
+#   kubectl apply -f koneksi/argocd/environment/staging/image-updater-staging.yml -n argocd
+#
+# Docs: https://argocd-image-updater.readthedocs.io/en/release-1.1/configuration/applications/#reading-configuration-from-application-annotations
+
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: staging-annotation-apps
+  namespace: argocd
+spec:
+  applicationRefs:
+    # Glob matches koneksi-backend-staging, data-provenance-staging, s3-gateway-staging, etc.
+    - namePattern: "*-staging"
+      useAnnotations: true

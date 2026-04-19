@@ -1,11 +1,18 @@
 # Staging: standalone Redis (Bitnami chart: oci://registry-1.docker.io/bitnamicharts/redis)
 #
+#   First time or anytime (idempotent): use --install or plain install will work once.
 #   helm upgrade --install redis-staging oci://registry-1.docker.io/bitnamicharts/redis \
-#     -n staging --create-namespace -f redis/environment/staging/values.yml
+#     -n redis --create-namespace -f redis/environment/staging/values.yml
+#   Plain `helm upgrade` alone fails with "has no deployed releases" until a release exists.
+#   Uninstall: helm uninstall redis-staging -n redis
 #
 # Replace CHANGEME_REDIS_PASSWORD or use auth.existingSecret.
 # Storage: apply global/nks/storageclass-block-ssd.yml first (NHN NKS block SSD).
 # Service: LoadBalancer — lock down with cloud SG + optional loadBalancerSourceRanges.
+#
+# MISCONF / "unable to persist": disk full, volume RW issues, or BGSAVE fork OOM. Check pod logs,
+# `redis-cli INFO persistence`, and PVC usage. Staging below disables periodic RDB saves and relaxes
+# stop-on-bgsave-error so Asynq keeps working (queue is ephemeral; tighten for prod).
 
 global:
   defaultStorageClass: nhn-block-ssd
@@ -41,3 +48,5 @@ master:
 commonConfiguration: |-
   appendonly no
   maxmemory-policy allkeys-lru
+  save ""
+  stop-writes-on-bgsave-error no

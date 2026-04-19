@@ -1,3 +1,20 @@
+# Argo CD Image Updater (Helm: argo/argocd-image-updater) — queries OCI registries and updates Argo CD Applications.
+#
+# v1.1+ runs as an operator: it reconciles `ImageUpdater` CRs. Logs like "No ImageUpdater CRs to process" mean
+# no CR exists yet — Application annotations alone are not enough until you apply one CR with `useAnnotations: true`.
+#
+#   kubectl apply -f koneksi/argocd/environment/staging/image-updater-staging.yml -n argocd
+#
+# Older "classic daemon only" installs are different; this repo targets chart + values + staging CR above.
+#
+# Helm (after `ncr-regcred` exists in argocd — see below):
+#   helm repo add argo https://argoproj.github.io/argo-helm && helm repo update
+#   helm upgrade --install argocd-image-updater argo/argocd-image-updater -n argocd -f argocd/image-updater-values.yaml
+#
+# Verify:
+#   kubectl get imageupdater -n argocd
+#   kubectl logs -n argocd deploy/argocd-image-updater -f --tail=100
+#
 # Helm: argo/argocd-image-updater
 #   helm upgrade --install argocd-image-updater argo/argocd-image-updater -n argocd -f argocd/image-updater-values.yaml
 #
@@ -11,11 +28,23 @@
 #   User Access Key = docker username, Secret Key = docker password.
 #   Do not use the NCR Appkey as the docker-registry Secret password unless NHN docs
 #   explicitly say so for your setup; standard flow is Access Key + Secret Key.
-# Pull secret (User Access Key + Secret Key from NHN Account → API Security):
+# Pull secret (User Access Key + Secret Key from NHN Account → API Security — NOT the NCR Appkey):
 #   kubectl create secret docker-registry ncr-regcred -n argocd \
 #     --docker-server=https://36163004-kr1-registry.container.nhncloud.com \
 #     --docker-username='YOUR_USER_ACCESS_KEY' \
 #     --docker-password='YOUR_SECRET_KEY'
+#
+# If Image Updater logs: "invalid auth token for registry entry ... ('auth' ...)" the controller cannot
+# decode or use the Secret’s .dockerconfigjson for this registry. Typical fixes:
+#   1) Recreate ncr-regcred with a fresh User Access Key + Secret Key (rotate if unsure).
+#   2) Match docker-server to how clients authenticate: try host WITH https (above); if it still fails,
+#      recreate the same secret with --docker-server=36163004-kr1-registry.container.nhncloud.com
+#      (no scheme) so the auths key matches what the registry client expects.
+#   3) Confirm the Secret lives in namespace argocd and name matches credentials: pullsecret:argocd/ncr-regcred.
+#   4) helm upgrade ... argocd-image-updater so the pod mounts the updated ConfigMap/Secret.
+#
+# Quick check (decode only structure, do not paste creds):
+#   kubectl get secret ncr-regcred -n argocd -o jsonpath='{.data.\.dockerconfigjson}' | base64 -d
 #
 # If pulls must use VPC private endpoint only, switch host to:
 #   private-36163004-kr1-registry.container.nhncloud.com (match console Private URI).
