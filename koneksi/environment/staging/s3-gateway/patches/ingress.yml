@@ -7,7 +7,7 @@ spec:
   tls:
     - hosts:
         - nhn-s3-gateway.koneksi.co.kr
-      secretName: s3-gateway-tls
+      secretName: koneksi-backend-tls
   rules:
     - host: nhn-s3-gateway.koneksi.co.kr
       http:

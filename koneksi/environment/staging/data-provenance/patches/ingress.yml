@@ -8,7 +8,7 @@ spec:
   tls:
     - hosts:
         - nhn-data-provenance.koneksi.com
-      secretName: data-provenance-tls
+      secretName: koneksi-backend-tls
   rules:
     - host: nhn-data-provenance.koneksi.com
       http:
