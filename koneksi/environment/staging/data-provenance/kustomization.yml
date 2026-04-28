@@ -3,8 +3,8 @@
 #
 # Same pattern as koneksi-backend: global/base deploy + service + ingress, namespace koneksi-staging.
 #
-# Namespace + ncr-regcred are NOT listed here — they are managed only by the koneksi-backend Argo CD Application
-# to avoid SharedResourceWarning (two apps owning the same Namespace/Secret). Ensure backend syncs first or NS exists.
+# Namespace + ncr-regcred are NOT listed here — create `koneksi-staging` and `ncr-regcred` yourself (or sync backend
+# if your overlay includes them). Avoid two Argo apps owning the same Namespace/Secret (SharedResourceWarning).
 #
 # Prerequisites:
 #   • TLS for this host:

@@ -4,7 +4,8 @@
 # Uses shared templates under global/base (deploy, service, ingress) plus staging patches.
 #
 # Prerequisites:
-#   • Namespace `koneksi-staging` (included via namespace.yml), or create: kubectl create namespace koneksi-staging
+#   • Namespace `koneksi-staging` — create manually (namespace.yml is not in `resources` so Argo does not own/delete it):
+#       kubectl create namespace koneksi-staging
 #   • Image pull: `ncr-regcred.yaml` (NCR) is included; sync credentials with argocd/ncr-regcred.yaml if you rotate keys.
 #   • TLS: create the TLS secret before Ingress becomes ready:
 #       kubectl create secret tls koneksi-backend-tls -n koneksi-staging \
@@ -36,7 +37,7 @@ labels:
 images:
   - name: base-image
     newName: 36163004-kr1-registry.container.nhncloud.com/koneksi-tech/koneksi-backend
-    newTag: v0.0.19-staging
+    newTag: v0.0.20-staging
 
 patches:
   - path: patches/deploy.yml
