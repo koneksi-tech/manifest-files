@@ -7,10 +7,10 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - nhn-staging.koneksi.co.kr
+        - nhn-api.koneksi.co.kr
       secretName: koneksi-backend-tls
   rules:
-    - host: nhn-staging.koneksi.co.kr
+    - host: nhn-api.koneksi.co.kr
       http:
         paths:
           - path: /
