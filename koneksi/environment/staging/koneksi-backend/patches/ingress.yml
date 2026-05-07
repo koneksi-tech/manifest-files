@@ -8,9 +8,20 @@ spec:
   tls:
     - hosts:
         - nhn-staging.koneksi.co.kr
+        - nhn-api.koneksi.co.kr
       secretName: koneksi-backend-tls
   rules:
     - host: nhn-staging.koneksi.co.kr
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: koneksi-backend
+                port:
+                  name: http
+    - host: nhn-api.koneksi.co.kr
       http:
         paths:
           - path: /
