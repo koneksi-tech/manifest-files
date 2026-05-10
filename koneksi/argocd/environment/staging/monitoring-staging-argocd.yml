@@ -1,0 +1,32 @@
+# Argo CD Application — monitoring stack (staging).
+# Apply into the argocd namespace:
+#   kubectl apply -f koneksi/argocd/environment/staging/monitoring-staging-argocd.yml -n argocd
+#
+# Deploys: monitoring namespace, Promtail DaemonSet, node-exporter DaemonSet, kube-state-metrics.
+# Ships logs to Loki at 133.186.241.75:3100.
+# node-exporter listens on hostNetwork port 9100 (scraped by external Prometheus at 133.186.241.75:9090).
+# kube-state-metrics exposed via NodePort 30080 (scraped by external Prometheus).
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring-staging
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:koneksi-tech/manifest-files.git
+    targetRevision: main
+    path: monitoring/environment/staging
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
