@@ -35,9 +35,8 @@ labels:
     includeSelectors: true
 
 images:
-  - name: base-image
-    newName: 36163004-kr1-registry.container.nhncloud.com/koneksi-tech/koneksi-backend
-    newTag: v0.0.26-staging
+  - name: 36163004-kr1-registry.container.nhncloud.com/koneksi-tech/koneksi-backend
+    newTag: v0.0.27-staging
 
 patches:
   - path: patches/deploy.yml

@@ -17,7 +17,7 @@ spec:
         - name: ncr-regcred
       containers:
         - name: base-deploy
-          image: base-image
+          image: 36163004-kr1-registry.container.nhncloud.com/koneksi-tech/koneksi-backend
           imagePullPolicy: Always
           ports:
             - name: http
