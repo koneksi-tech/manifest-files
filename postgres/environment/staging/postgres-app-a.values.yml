@@ -36,6 +36,21 @@ primary:
       memory: 2Gi
   fips:
     openssl: "off"
+  extendedConfiguration: |
+    wal_level = replica
+    max_wal_senders = 5
+    max_replication_slots = 5
+  pgHbaConfiguration: |
+    local    all             all                                     trust
+    host     all             all             127.0.0.1/32            scram-sha-256
+    host     all             all             ::1/128                 scram-sha-256
+    host     all             all             10.0.0.0/8              scram-sha-256
+    host     replication     postgres        10.100.30.0/32          scram-sha-256
+    host     all             postgres        10.100.30.0/32          scram-sha-256
+    host     replication     postgres        10.100.152.0/32         scram-sha-256
+    host     all             postgres        10.100.152.0/32         scram-sha-256
+    host     replication     postgres        192.168.0.42/32         scram-sha-256
+    host     all             postgres        192.168.0.42/32         scram-sha-256
   service:
     type: LoadBalancer
     ports:

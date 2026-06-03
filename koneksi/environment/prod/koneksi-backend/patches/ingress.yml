@@ -1,0 +1,23 @@
+# Strategic merge on global/base/ingress/ingress.yml (metadata.name: base-ingress)
+# TODO: replace <PROD_HOST> with actual production hostname before applying
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: base-ingress
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - <PROD_HOST>
+      secretName: koneksi-backend-tls
+  rules:
+    - host: nhn-
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: koneksi-backend
+                port:
+                  name: http

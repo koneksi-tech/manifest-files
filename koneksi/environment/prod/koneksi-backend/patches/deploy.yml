@@ -1,0 +1,36 @@
+# Strategic merge on global/base/deploy/deploy.yml (metadata.name: base-deploy)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: base-deploy
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: koneksi-backend
+  template:
+    metadata:
+      labels:
+        app: koneksi-backend
+    spec:
+      imagePullSecrets:
+        - name: ncr-regcred
+      containers:
+        - name: base-deploy
+          image: 36163004-kr1-registry.container.nhncloud.com/koneksi-tech/koneksi-backend
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: koneksi-backend-config
+            - secretRef:
+                name: koneksi-backend-secret
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
