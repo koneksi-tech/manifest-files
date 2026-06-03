@@ -19,7 +19,8 @@ resources:
   - ../../../../global/base/deploy
   - ../../../../global/base/service
   - ../../../../global/base/ingress
-  - configmap.yml
+  # configmap.yml: not committed to repo — apply manually so Argo/kustomize does not manage it.
+  # - configmap.yml
 
 labels:
   - pairs:
