@@ -1,0 +1,79 @@
+# Apply (from repo root):
+#   kubectl apply -k koneksi/environment/staging/koneksi-frontend
+#
+# Uses shared templates under global/base (deploy, service, ingress) plus staging patches.
+#
+# Prerequisites:
+#   • Namespace `koneksi-staging` — already exists from koneksi-backend.
+#   • Image pull: `ncr-regcred` secret in koneksi-staging (already exists from koneksi-backend).
+#   • TLS: reuses `koneksi-backend-tls` (wildcard *.koneksi.co.kr — already in koneksi-staging).
+#   • configmap.yml is included in resources below (VITE_* values are public — not secret).
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: koneksi-staging
+
+resources:
+  # - namespace.yml
+  - ../../../../global/base/deploy
+  - ../../../../global/base/service
+  - ../../../../global/base/ingress
+  - configmap.yml
+
+labels:
+  - pairs:
+      app.kubernetes.io/name: koneksi-frontend
+      app.kubernetes.io/part-of: koneksi
+    includeSelectors: true
+
+images:
+  - name: 36163004-kr1-registry.container.nhncloud.com/koneksi-tech/koneksi-frontend
+    newTag: v0.0.1
+
+patches:
+  - path: patches/deploy.yml
+  - path: patches/service.yml
+  - path: patches/ingress.yml
+  # global/base/service merges ports by name; replace so only port 80 → 80 remains
+  - target:
+      kind: Service
+      name: base-svc
+    patch: |-
+      - op: replace
+        path: /spec/ports
+        value:
+          - name: http
+            protocol: TCP
+            port: 80
+            targetPort: http
+  # global/base/deploy lists regcred; overlay uses ncr-regcred only
+  - target:
+      kind: Deployment
+      name: base-deploy
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/imagePullSecrets
+        value:
+          - name: ncr-regcred
+  - target:
+      kind: Deployment
+      name: base-deploy
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: koneksi-frontend
+  - target:
+      kind: Service
+      name: base-svc
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: koneksi-frontend
+  - target:
+      kind: Ingress
+      name: base-ingress
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: koneksi-frontend

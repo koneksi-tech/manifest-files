@@ -1,0 +1,40 @@
+# Argo CD Application — koneksi-frontend (staging).
+# Apply into the argocd namespace (where Argo CD watches Applications):
+#   kubectl apply -f koneksi/argocd/environment/staging/frontend-staging-argocd.yml -n argocd
+#
+# Requires: repo credential Secret in argocd (see argocd/SECRETS.md), and Argo CD Image Updater
+# installed if you use the image-updater annotations below.
+#
+# Destination namespace matches kustomize (koneksi/environment/staging/koneksi-frontend); sync option creates it if missing.
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: koneksi-frontend-staging
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    # Kustomize image name `base-image` → NCR image; track newest semver tag (v0.0.1, v0.0.2, ...).
+    argocd-image-updater.argoproj.io/image-list: base-image=36163004-kr1-registry.container.nhncloud.com/koneksi-tech/koneksi-frontend
+    # v1.1+: "latest" renamed to "newest-build" (see Image Updater logs if you use legacy name).
+    argocd-image-updater.argoproj.io/base-image.update-strategy: newest-build
+    argocd-image-updater.argoproj.io/base-image.allow-tags: regexp:^v[0-9]+\.[0-9]+\.[0-9]+$
+    # In-cluster write-back (patches Application / parameters). For git write-back, set method to git and use git-branch on the *manifest* repo.
+    argocd-image-updater.argoproj.io/write-back-method: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:koneksi-tech/manifest-files.git
+    targetRevision: main
+    path: koneksi/environment/staging/koneksi-frontend
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: koneksi-staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true

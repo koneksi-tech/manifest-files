@@ -11,12 +11,12 @@ stringData:
     {
       "auths": {
         "https://36163004-kr1-registry.container.nhncloud.com": {
-          "username": "YOUR_NCR_ACCESS_KEY",
-          "password": "YOUR_NCR_SECRET_KEY"
+          "username": "1nHMFQFtVIMciZy82kw9",
+          "password": "cq9oqITdkPJN4WZj"
         },
         "36163004-kr1-registry.container.nhncloud.com": {
-          "username": "YOUR_NCR_ACCESS_KEY",
-          "password": "YOUR_NCR_SECRET_KEY"
+          "username": "1nHMFQFtVIMciZy82kw9",
+          "password": "cq9oqITdkPJN4WZj"
         }
       }
     }
