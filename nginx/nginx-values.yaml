@@ -25,3 +25,8 @@ controller:
   admissionWebhooks:
     enabled: true
 
+  config:
+    # NGINX2Root (CVE-2026-123007, CVE-2026-123633): HTTP/2 off. Community ingress-nginx is archived and
+    # bundles an unfixed nginx, so keep this until the controller is replaced with a fixed one.
+    use-http2: "false"
+
